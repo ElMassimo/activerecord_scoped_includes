@@ -159,13 +159,12 @@ Both are private APIs of Active Record, so the library is tested against every s
 
 ## Running tests 🧪
 
-The tests use [deferred_columns] from a sibling folder:
-
 ```sh
-git clone https://github.com/ElMassimo/deferred_columns ../deferred_columns
 bundle install
 bin/rspec
 ```
+
+Some tests check that it works along with [deferred_columns]. They use a checkout in a sibling folder (`../deferred_columns`) when there's one, and the released gem otherwise.
 
 To run the tests against a specific version of Rails, set `BUNDLE_GEMFILE` to one of the files in `gemfiles`:
 

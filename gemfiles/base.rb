@@ -4,5 +4,5 @@
 def main_gemfile
   File.read(File.expand_path('../Gemfile', __dir__))
     .sub('gemspec', 'gemspec path: ".."')
-    .sub("path: '../deferred_columns'", "path: '../../deferred_columns'")
+    .sub('__dir__', File.expand_path('..', __dir__).inspect)
 end

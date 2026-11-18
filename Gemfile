@@ -9,8 +9,14 @@ group :development do
 end
 
 group :development, :test do
-  # Only for the specs that check it works along with deferred_columns.
-  gem 'deferred_columns', path: '../deferred_columns'
+  # Only for the specs that check it works along with deferred_columns. Uses a
+  # sibling checkout when there's one, to test unreleased changes of both gems.
+  deferred_columns = File.expand_path('../deferred_columns', __dir__)
+  if File.directory?(deferred_columns)
+    gem 'deferred_columns', path: deferred_columns
+  else
+    gem 'deferred_columns', '>= 0.0.2'
+  end
   gem 'pg' unless ENV.fetch('DATABASE_URL', '').empty?
   gem 'rake', '~> 13.0'
   gem 'rspec', '~> 3.13'
