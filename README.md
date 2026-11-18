@@ -11,9 +11,8 @@ Scoped Includes
 [mongoid_includes]: https://github.com/ElMassimo/mongoid_includes
 [nested_select]: https://github.com/alekseyl/nested_select
 [Sequel]: https://sequel.jeremyevans.net/rdoc/files/doc/advanced_associations_rdoc.html
-[Issues]: https://github.com/ElMassimo/activerecord_scoped_includes/issues
 
-Choose the columns an [Active Record] association loads, right where you include it.
+Customize which columns are loaded when eager loading [Active Record] associations.
 
 ```ruby
 Album.includes(songs: -> { select(:id, :name) })
@@ -21,11 +20,10 @@ Album.includes(songs: -> { select(:id, :name) })
 # SELECT "songs"."id", "songs"."name", "songs"."album_id" FROM "songs" WHERE "songs"."album_id" IN (1, 2)
 ```
 
-The records load into the association itself, so `album.songs` has them, and code that reads it doesn't need to know which columns were loaded or under which name.
-
 ## Why? 🤔
 
-To load an association with different columns, Rails needs another association:
+Selecting different columns when loading an association usually means defining
+another association:
 
 ```ruby
 class Album < ApplicationRecord
@@ -34,18 +32,20 @@ class Album < ApplicationRecord
 end
 ```
 
-Each variant needs a name, and the code that reads the records has to pick the right one. When a page loads one variant and a component reads the other, the same records are loaded twice.
+This becomes cumbersome when different pages need different columns, and it's
+easy to preload `song_titles` only to have a serializer call `songs`, loading
+the records again.
 
-This library lets the query decide how the association is loaded, in the same `includes` call that loads it.
+With Scoped Includes, you can select columns in the `includes` call and keep
+using `album.songs`, without defining extra associations.
 
 ## Features ⚡️
 
-- A scope as the value of an association, in `includes`, `preload` and `eager_load`
-- Accepts a lambda, as in association scopes, or a relation
-- Nested includes go inside the scope, so each association keeps its own shape
-- Adds the keys that link records to their owners, which a `select` can easily leave out
-- Works with `has_many :through`, `belongs_to`, `strict_loading` and `Preloader`
-- Works with [deferred_columns], to opt into deferred columns per association
+- Customize `includes`, `preload` and `eager_load` with a lambda or relation
+- Select columns independently for nested associations
+- Automatically selects the keys required to load associations
+- Supports `has_many :through`, `belongs_to`, `strict_loading` and `Preloader`
+- Load deferred columns per association when using [deferred_columns]
 
 ## Installation 💿
 
@@ -63,14 +63,15 @@ And then run:
 
 ### Selecting columns
 
-Pass a scope as the value of an association:
+You can pass a lambda or an Active Record relation to select columns for an association:
 
 ```ruby
 Album.includes(songs: -> { select(:name, :track) })
 Album.preload(songs: Song.select(:name, :track))
 ```
 
-A lambda is evaluated on the associated model, like an association scope, while a relation can be built anywhere and reused:
+Lambdas are evaluated on the associated model, just like association scopes.
+You can also reuse a relation:
 
 ```ruby
 SONG_TITLES = Song.select(:name, :track)
@@ -78,40 +79,46 @@ SONG_TITLES = Song.select(:name, :track)
 Album.includes(songs: SONG_TITLES)
 ```
 
-It works the same with `eager_load`, and with `includes` when it eager loads:
+This also works with `eager_load`, or when `includes` uses a join:
 
 ```ruby
 Album.eager_load(songs: -> { select(:name) })
 Album.includes(songs: -> { select(:name) }).where(songs: { track: 1..3 })
 ```
 
-When eager loading, the scope can only select columns of the table, so `select("UPPER(name) AS name")` raises an `ArgumentError`.
+When loading through a join, you can only select columns from the associated
+table. SQL expressions such as `select("UPPER(name) AS name")` raise an `ArgumentError`.
 
-### Keys
+### Primary and foreign keys
 
-A select doesn't need to list the keys that link each record to its owner, such as `album_id` above.
+You don't need to include primary and foreign keys in your `select`. Scoped
+Includes adds the keys Active Record needs to load the association, such as
+`id` and `album_id` in the first example.
 
-In plain Rails, leaving them out of an association scope loads no records, without raising. This library adds them to the select.
+Without this, omitting the foreign key when preloading a `has_many` association
+can leave it empty, without raising an error.
 
-### Nesting includes
+### Nested associations
 
-Include associations of the scoped association inside the scope:
+To load nested associations, call `includes` on the relation:
 
 ```ruby
 Artist.includes(albums: Album.select(:name).includes(songs: -> { select(:name) }))
 ```
 
-Associations without a scope can be mixed in as usual:
+You can combine this with regular includes:
 
 ```ruby
 Song.includes(:playlist_entries, album: -> { select(:name) })
 ```
 
-### Only the shape, not the records
+### Filtering and sorting
 
-A scope can select columns, include associations, and enable `strict_loading`.
+Scopes in `includes` support selecting columns, loading nested associations,
+and enabling `strict_loading`, but not filtering, sorting, or limiting records.
 
-It can't filter or sort the records, since the association would then hold only some of its records, and other code reading it would get a partial list:
+For example, using `where` would leave `album.songs` with only some of its songs,
+which could surprise other code using the association:
 
 ```ruby
 Album.includes(songs: -> { where(track: 1) })
@@ -119,7 +126,7 @@ Album.includes(songs: -> { where(track: 1) })
 # To load only some of the records, define an association with that scope instead.
 ```
 
-Define an association for those instead, as usual:
+If you need to filter or sort records, define a separate association:
 
 ```ruby
 has_many :opening_tracks, -> { where(track: 1) }, class_name: "Song"
@@ -127,29 +134,37 @@ has_many :opening_tracks, -> { where(track: 1) }, class_name: "Song"
 
 ### With deferred_columns
 
-The scope can opt into the columns that [deferred_columns] leaves out:
+If you are using [deferred_columns], you can load deferred columns with `with_deferred`:
 
 ```ruby
 Album.includes(songs: -> { with_deferred(:lyrics) })
 ```
 
-This loads the lyrics into `album.songs`, instead of a separate `songs_with_lyrics` association. The opt-ins add up with those of the association scope:
+This makes `lyrics` available when accessing `album.songs`.
+
+If the association already uses `with_deferred`, the additional columns are
+loaded along with those specified in the association:
 
 ```ruby
 Album.eager_load(songs_with_lyrics: -> { with_deferred(:waveform) }) # lyrics and waveform
 ```
 
-### Associations that are already loaded
+### Already loaded associations
 
-Like Rails, the preloader keeps the records of an association that is already loaded, so their columns stay as they were.
+As with regular preloading, associations that are already loaded are not reloaded.
+Passing a scope won't fetch additional columns for those records.
 
 ## How it works 🔧
 
-`includes` and `preload` build a tree of associations with `Preloader::Branch`. When the value of an association is a scope, its nested includes become the children of the branch, and the rest of the scope is merged into the scope of the loader, the same way `Preloader.new(scope:)` applies a scope to every association.
+For `preload` and `includes` without joins, the library extends
+`Preloader::Branch` to accept a scope per association. Nested includes become
+child branches, and the scope is merged with the association's loading scope.
 
-`eager_load` builds a `JoinDependency` instead, which selects the column names of each joined model. When the association has a scope, those are the columns its `SELECT` would list, so selects and opt-ins from other libraries apply as well.
+For `eager_load` and `includes` with joins, it extends `JoinDependency` to use
+the columns selected by each scope instead of all columns from the joined table.
 
-Both are private APIs of Active Record, so the library is tested against every supported version, including `main`.
+These are private Active Record APIs. The test suite runs against all supported
+versions, including Rails `main`.
 
 ## Compatibility
 
@@ -164,7 +179,8 @@ bundle install
 bin/rspec
 ```
 
-Some tests check that it works along with [deferred_columns]. They use a checkout in a sibling folder (`../deferred_columns`) when there's one, and the released gem otherwise.
+Integration tests with [deferred_columns] use a local checkout at
+`../deferred_columns` if available, or the released gem otherwise.
 
 To run the tests against a specific version of Rails, set `BUNDLE_GEMFILE` to one of the files in `gemfiles`:
 
