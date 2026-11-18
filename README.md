@@ -1,8 +1,8 @@
 <h1 align="center">
 Scoped Includes
 <p align="center">
-<a href="https://github.com/ElMassimo/scoped_includes/actions"><img alt="Build Status" src="https://github.com/ElMassimo/scoped_includes/workflows/build/badge.svg"/></a>
-<a href="https://github.com/ElMassimo/scoped_includes/blob/main/LICENSE.txt"><img alt="License" src="https://img.shields.io/badge/license-MIT-428F7E.svg"/></a>
+<a href="https://github.com/ElMassimo/activerecord_scoped_includes/actions"><img alt="Build Status" src="https://github.com/ElMassimo/activerecord_scoped_includes/workflows/build/badge.svg"/></a>
+<a href="https://github.com/ElMassimo/activerecord_scoped_includes/blob/main/LICENSE.txt"><img alt="License" src="https://img.shields.io/badge/license-MIT-428F7E.svg"/></a>
 </p>
 </h1>
 
@@ -11,7 +11,7 @@ Scoped Includes
 [mongoid_includes]: https://github.com/ElMassimo/mongoid_includes
 [nested_select]: https://github.com/alekseyl/nested_select
 [Sequel]: https://sequel.jeremyevans.net/rdoc/files/doc/advanced_associations_rdoc.html
-[Issues]: https://github.com/ElMassimo/scoped_includes/issues
+[Issues]: https://github.com/ElMassimo/activerecord_scoped_includes/issues
 
 Choose the columns an [Active Record] association loads, right where you include it.
 
@@ -52,7 +52,7 @@ This library lets the query decide how the association is loaded, in the same `i
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'scoped_includes'
+gem 'activerecord_scoped_includes'
 ```
 
 And then run:
@@ -177,8 +177,8 @@ BUNDLE_GEMFILE=gemfiles/Gemfile-rails.7.2.x bin/rspec
 The tests run on an in-memory SQLite database by default. To run them on PostgreSQL, set `DATABASE_URL`:
 
 ```sh
-createdb scoped_includes_test
-DATABASE_URL=postgres:///scoped_includes_test bin/rspec
+createdb activerecord_scoped_includes_test
+DATABASE_URL=postgres:///activerecord_scoped_includes_test bin/rspec
 ```
 
 ## Acknowledgements 🙏

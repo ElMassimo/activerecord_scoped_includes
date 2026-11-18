@@ -5,7 +5,7 @@ SimpleCov.start { skip '/spec/' }
 
 require 'bundler/setup'
 require 'deferred_columns'
-require 'scoped_includes'
+require 'activerecord_scoped_includes'
 require_relative 'support/models'
 
 module QueryHelpers
