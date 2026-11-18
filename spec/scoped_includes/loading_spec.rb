@@ -89,6 +89,10 @@ RSpec.describe 'Scopes in includes' do
 
     expect(album.songs.first.lyrics).to eq('Lyrics for Singing Winds, Crying Beasts')
     expect { album.songs.first.album }.to raise_error(ActiveRecord::StrictLoadingViolationError)
+
+    album = Album.includes(songs: -> { strict_loading }).find_by!(name: 'Abraxas')
+    expect(album).not_to be_strict_loading
+    expect(album.songs.first).to be_strict_loading
   end
 
   it 'works with the preloader' do
