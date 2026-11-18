@@ -180,7 +180,7 @@ bin/rspec
 ```
 
 Integration tests with [deferred_columns] use a local checkout at
-`../deferred_columns` if available, or the Git revision pinned in the Gemfile otherwise.
+`../deferred_columns` if available, or the released gem otherwise.
 
 To run the tests against a specific version of Rails, set `BUNDLE_GEMFILE` to one of the files in `gemfiles`:
 

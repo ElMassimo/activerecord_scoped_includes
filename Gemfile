@@ -15,9 +15,7 @@ group :development, :test do
   if File.directory?(deferred_columns)
     gem 'deferred_columns', path: deferred_columns
   else
-    # The integration specs need changes that haven't been released on RubyGems yet.
-    gem 'deferred_columns', '>= 0.0.2',
-      git: 'https://github.com/ElMassimo/deferred_columns.git', ref: '369bde950eb1542ecf51516eeacb4b62c7ff8356'
+    gem 'deferred_columns', '>= 0.0.2'
   end
   gem 'pg' unless ENV.fetch('DATABASE_URL', '').empty?
   gem 'rake', '~> 13.0'
