@@ -45,8 +45,9 @@ module ActiveRecord
     # such as the foreign key of a `belongs_to`.
     def self.owner_keys(reflections)
       reflections.flat_map { |reflection|
-        link = reflection.chain.last
-        [*link.join_foreign_key, *(link.foreign_type if link.polymorphic?)]
+        link = reflection
+        link = link.through_reflection while link.through_reflection?
+        link.belongs_to? ? [*link.foreign_key, *(link.foreign_type if link.polymorphic?)] : [*link.active_record_primary_key]
       }.map(&:to_s).uniq
     end
   end
