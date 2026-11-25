@@ -68,6 +68,7 @@ class Song < ActiveRecord::Base
   defer_columns :lyrics, :waveform
 
   belongs_to :album
+  has_one :artist, through: :album
   has_many :playlist_entries
 end
 

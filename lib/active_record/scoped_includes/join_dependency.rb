@@ -32,7 +32,8 @@ module ActiveRecord
         end
 
         # The columns of the association scope merged with the includes scope, as
-        # its SELECT would list them, plus the primary key to tell records apart.
+        # its SELECT would list them, plus the primary key to tell records apart,
+        # and the keys that the associations it includes need.
         def column_names
           includes_scope ? includes_column_names : super
         end
@@ -42,7 +43,8 @@ module ActiveRecord
         def includes_column_names
           @includes_column_names ||= begin
             scope = reflection.scope ? reflection.scope_for(base_klass.unscoped).merge(includes_scope) : includes_scope
-            scope.arel.projections.flat_map { |projection| projected_columns(projection) } | [base_klass.primary_key]
+            keys = [*base_klass.primary_key, *ScopedIncludes.owner_keys(children.map(&:reflection))]
+            scope.arel.projections.flat_map { |projection| projected_columns(projection) } | keys
           end
         end
 
@@ -59,6 +61,17 @@ module ActiveRecord
     private
 
       def build(associations, base_klass)
+        associations.each do |name, children|
+          scope = children.instance_variable_get(:@includes_scope)
+          reflection = find_reflection(base_klass, name)
+          next unless scope.is_a?(Proc) && !reflection.polymorphic?
+
+          # A lambda is only resolved once the model is known, to nest its includes.
+          scope = ScopedIncludes.resolve(scope, reflection.klass)
+          children.instance_variable_set(:@includes_scope, scope)
+          self.class.walk_tree(ScopedIncludes.nested(scope), children)
+        end
+
         super.each_with_index do |join, index|
           scope = associations.values[index].instance_variable_get(:@includes_scope)
           join.includes_scope = ScopedIncludes.resolve(scope, join.base_klass) if scope
