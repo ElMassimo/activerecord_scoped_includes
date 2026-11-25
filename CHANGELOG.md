@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.2 (2026-11-25)
 
 - Load the associations included inside a lambda, which were ignored and then loaded lazily.
 - Add the keys that nested associations need to scopes that select columns, such as the foreign key of a `belongs_to`.
