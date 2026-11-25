@@ -100,11 +100,15 @@ can leave it empty, without raising an error.
 
 ### Nested associations
 
-To load nested associations, call `includes` on the relation:
+To load nested associations, call `includes` on the relation or inside the lambda:
 
 ```ruby
 Artist.includes(albums: Album.select(:name).includes(songs: -> { select(:name) }))
+Artist.includes(albums: -> { select(:name).includes(songs: -> { select(:name) }) })
 ```
+
+The keys that nested associations need are selected as well, such as
+`album_id` in `Song.select(:name).includes(:album)`.
 
 You can combine this with regular includes:
 

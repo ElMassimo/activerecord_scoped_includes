@@ -40,6 +40,15 @@ module ActiveRecord
 
       [*scope.includes_values, *scope.preload_values, *scope.eager_load_values]
     end
+
+    # The columns of their owner that the associations need to load their records,
+    # such as the foreign key of a `belongs_to`.
+    def self.owner_keys(reflections)
+      reflections.flat_map { |reflection|
+        link = reflection.chain.last
+        [*link.join_foreign_key, *(link.foreign_type if link.polymorphic?)]
+      }.map(&:to_s).uniq
+    end
   end
 end
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Load the associations included inside a lambda, which were ignored and then loaded lazily.
+- Add the keys that nested associations need to scopes that select columns, such as the foreign key of a `belongs_to`.
+
 ## 0.0.1 (2026-11-18)
 
 - Initial release: a scope as the value of an association in `includes`, `preload` and `eager_load`, as a lambda or a relation.

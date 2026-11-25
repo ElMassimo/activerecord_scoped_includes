@@ -56,6 +56,38 @@ RSpec.describe 'Scopes in includes' do
     expect(abraxas.songs.first.has_attribute?(:lyrics)).to be(false)
   end
 
+  %i[includes preload eager_load].each do |strategy|
+    it "nests the #{strategy} of a lambda" do
+      artist = nil
+      statements = queries {
+        artist = Artist.public_send(strategy, albums: -> { select(:name).public_send(strategy, songs: -> { select(:name) }) }).where(name: 'Santana').to_a.sole
+      }
+      songs = nil
+
+      expect(statements.size).to eq(strategy == :eager_load ? 1 : 3)
+      expect(queries { songs = artist.albums.flat_map(&:songs) }).to be_empty
+      expect(songs.size).to eq(10)
+      expect(songs.first.attributes.keys - %w[album_id]).to match_array(%w[id name])
+    end
+
+    it "selects the keys that the #{strategy} of a scope needs" do
+      entries = PlaylistEntry.select(:position).public_send(strategy, :song, playlist: -> { select(:name) })
+      song = Song.public_send(strategy, playlist_entries: entries).find_by!(name: 'Oye como va')
+      entry = song.playlist_entries.sole
+
+      expect(queries { expect(entry.playlist.name).to eq('Latin Rock') }).to be_empty
+      expect(entry.song).to eq(song)
+      expect(entry.attributes.keys).to match_array(%w[id position song_id playlist_id])
+    end
+  end
+
+  it 'selects the keys that a through association of a scope needs' do
+    entry = PlaylistEntry.preload(song: Song.select(:name).preload(:artist)).first
+
+    expect(queries { expect(entry.song.artist.name).to eq('Santana') }).to be_empty
+    expect(entry.song.attributes.keys).to match_array(%w[id name album_id])
+  end
+
   it 'mixes with associations without a scope' do
     song = Song.includes(:playlist_entries, album: -> { with_deferred(:liner_notes) }).find_by!(name: 'Oye como va')
 
